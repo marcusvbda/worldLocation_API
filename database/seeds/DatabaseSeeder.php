@@ -32,16 +32,16 @@ class initSeed extends Seeder
     {
         $continents = $this->get();
 
-        echo ".";
         if(isset($continents->geonames)):
             foreach ($continents->geonames as $continent):
+                echo $continent->toponymName." ";
                 $continent_id = DB::table("continents")->insertGetId([
                     "name"  => $continent->toponymName
                 ]);
-
                 $countries = $this->get($continent->geonameId);
-                if(isset($continents->geonames)):
+                if(isset($countries->geonames)):
                     foreach ($countries->geonames as $country):
+                        echo "n";
                         $country_id = DB::table("countries")->insertGetId([
                             "continent_id"  => $continent_id,
                             "name"  => $country->name,
@@ -51,6 +51,7 @@ class initSeed extends Seeder
                         $states = $this->get($country->geonameId);
                         if(isset($states->geonames)):
                             foreach ($states->geonames as $state):
+                                echo "s";
                                 $state_id = DB::table("states")->insertGetId([
                                     "country_id" => $country_id,
                                     "name"  =>  $state->name,
@@ -59,42 +60,50 @@ class initSeed extends Seeder
 
                                 $cities = $this->get($state->geonameId);
                                 if(isset($cities->geonames)):
-                                    foreach ($cities->geonames as $state):
+                                    foreach ($cities->geonames as $city):
+                                        echo "c";
                                         $city_id = DB::table("cities")->insertGetId([
                                             "state_id" => $state_id,
-                                            "name"  =>  $state->name,
-                                            "state_fs" => (isset($state->adminCodes1->ISO3166_2) ? $state->adminCodes1->ISO3166_2 : "")
+                                            "name"  =>  $city->name,
+                                            "state_fs" => (isset($city->adminCodes1->ISO3166_2) ? $city->adminCodes1->ISO3166_2 : "")
                                         ]);
-                                        echo ".";
                                     endforeach;
                                 endif;
-                                echo ".";
 
                             endforeach; //states
                         endif;
-                        echo ".";
 
                     endforeach;//countries
                 endif;
-                echo ".";
-                exit;
+
             endforeach; //continents
         endif;
-        echo "||| COMPLETED |||";
     }
 
     private function get($id="6295630")
     {
-        $url = "http://www.geonames.org/childrenJSON?geonameId=".$id;
-        $arrContextOptions=array(
-            "ssl"=>array(
-                "verify_peer"=>false,
-                "verify_peer_name"=>false,
-            ),
-        );  
-        $content = file_get_contents($url, false, stream_context_create($arrContextOptions));
-        $xml = json_decode($content);
-        return $xml;
+        try{
+            $url = "http://www.geonames.org/childrenJSON?geonameId=".$id;
+            $arrContextOptions=array(
+                "ssl"=>array(
+                    "verify_peer"=>false,
+                    "verify_peer_name"=>false,
+                ),
+            );  
+            $content = file_get_contents($url, false, stream_context_create($arrContextOptions));
+            $xml = json_decode($content);
+            return $xml;
+        }
+        catch(\Exception $e)
+        {
+            $result = null;
+            while ($result == null) 
+            {
+                $result = $this->get($id);
+            }
+            return $result;
+        }
+        
     }
 
 
@@ -105,7 +114,7 @@ class usersSeed extends Seeder
 {
     public function run()
     {
-      	DB::table('users')->insert([
+        DB::table('users')->insert([
             'name' => "ERP Copy Supply",
             'secret_id' => uniqid(),
             'secret_password' => uniqid()
